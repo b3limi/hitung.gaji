@@ -6,6 +6,8 @@
     <title>Hitung Gaji & HRIS BLIMI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         /* Menyembunyikan spinner pada input number */
         input[type="number"]::-webkit-inner-spin-button, 
@@ -87,18 +89,24 @@
                 </div>
             </div>
 
-           <!-- WIDGET TOTAL GAJI -->
-            <div class="bg-blue-600 rounded-xl shadow-md border border-blue-700 p-6 mb-6 flex flex-col sm:flex-row justify-between items-center text-white">
-                <div class="mb-2 sm:mb-0 text-center sm:text-left">
+           <!-- WIDGET TOTAL GAJI & TOMBOL PDF -->
+            <div class="bg-blue-600 rounded-xl shadow-md border border-blue-700 p-6 mb-6 flex flex-col md:flex-row justify-between items-center text-white gap-4">
+                <div class="text-center md:text-left">
                     <h3 class="text-base md:text-lg font-medium text-blue-100 uppercase tracking-wider">
                         Total Gaji Periode <span id="labelPeriodeKeseluruhan" class="font-bold text-white">-</span>
                     </h3>
+                    <div class="text-3xl md:text-4xl font-bold mt-2" id="summaryTotalGaji">
+                        Rp 0
+                    </div>
                 </div>
-                <div class="text-3xl md:text-4xl font-bold" id="summaryTotalGaji">
-                    Rp 0
+                <div>
+                    <button onclick="downloadPDF()" class="bg-white/20 hover:bg-white/30 text-white border border-white/30 px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Download PDF
+                    </button>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative min-h-[300px]">
                 <div id="loadingOverlay" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -442,6 +450,120 @@ function updateTotalGajiKeseluruhan() {
             }
         }
 
+        // ==========================================
+        // FITUR DOWNLOAD PDF (PORTRAIT - RINCIAN KE BAWAH)
+        // ==========================================
+        function downloadPDF() {
+            // Cek apakah ada data yang bisa di-print
+            if (Object.keys(currentData).length === 0) {
+                showToast('Tidak ada data gaji untuk di-download!', 'error');
+                return;
+            }
+
+            // Inisialisasi jsPDF (Portrait, satuan pt, ukuran A4)
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4'); // 'p' = portrait
+
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            let startY = 50;
+
+            // Header Laporan
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(15, 23, 42); // slate-900
+            doc.text('Laporan Rincian Gaji Karyawan BLIMI', pageWidth / 2, startY, { align: 'center' });
+            
+            startY += 20;
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(71, 85, 105); // slate-600
+            doc.text(`Periode: ${currentPeriode}`, pageWidth / 2, startY, { align: 'center' });
+            
+            startY += 15;
+            const totalGajiText = document.getElementById('summaryTotalGaji').innerText;
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(29, 78, 216); // blue-700
+            doc.text(`Grand Total: ${totalGajiText}`, pageWidth / 2, startY, { align: 'center' });
+
+            startY += 30; // Jarak sebelum masuk ke rincian karyawan
+
+            // Loop untuk setiap karyawan
+            Object.values(currentData).forEach((row, index) => {
+                // Pindah ke halaman baru jika sisa ruang di bawah kurang dari 180pt
+                if (startY > pageHeight - 180) {
+                    doc.addPage();
+                    startY = 50;
+                }
+
+                // Kotak Background Judul Karyawan
+                doc.setFillColor(241, 245, 249); // Warna slate-100
+                doc.rect(40, startY, pageWidth - 80, 22, 'F');
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(15, 23, 42); 
+                doc.text(`${index + 1}. ${row.nama} (ID: ${row.noid})`, 48, startY + 15);
+
+                startY += 40; // Turun ke area rincian
+
+                // Koordinat Kolom Kiri & Kanan
+                const leftX = 50;
+                const leftValX = 140; // Titik sejajar titik dua ( : )
+                const rightX = 320;
+                const rightValX = 410; // Titik sejajar titik dua kanan ( : )
+                
+                doc.setFontSize(10);
+
+                // Baris 1: Kehadiran & Absen
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(71, 85, 105); // slate-600
+                doc.text('Kehadiran', leftX, startY);
+                doc.text(`: ${row.kehadiran || "0"} Hari`, leftValX, startY);
+                
+                doc.text('Absen/Izin', rightX, startY);
+                doc.text(`: ${row.absen || "0"} Hari`, rightValX, startY);
+
+                startY += 20;
+
+                // Baris 2: Gaji Pokok & Bonus
+                doc.text('Gaji Pokok', leftX, startY);
+                doc.text(`: Rp ${formatRp(row.gajiPokok)}`, leftValX, startY);
+                
+                doc.text('Bonus', rightX, startY);
+                doc.text(`: Rp ${formatRp(row.bonus)}`, rightValX, startY);
+
+                startY += 20;
+
+                // Baris 3: Lembur & Potongan
+                doc.text('Lembur', leftX, startY);
+                doc.text(`: Rp ${formatRp(row.lembur)}`, leftValX, startY);
+                
+                doc.setTextColor(220, 38, 38); // text-red-600 untuk potongan
+                doc.text('Total Potongan', rightX, startY);
+                doc.text(`: Rp ${formatRp(row.totalPotongan)}`, rightValX, startY);
+
+                startY += 25;
+
+                // Baris 4: Total Gaji Diterima
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(29, 78, 216); // text-blue-700
+                doc.text('TOTAL DITERIMA', leftX, startY);
+                doc.text(`: Rp ${formatRp(row.totalGaji)}`, leftValX, startY);
+
+                // Garis pembatas antar karyawan
+                startY += 20;
+                doc.setDrawColor(226, 232, 240); // Garis abu-abu muda (slate-200)
+                doc.setLineWidth(1);
+                doc.line(40, startY, pageWidth - 40, startY);
+
+                startY += 20; // Jarak sebelum data karyawan berikutnya
+            });
+
+            // Simpan File PDF
+            doc.save(`Rincian_Gaji_BLIMI_${currentPeriode}.pdf`);
+            showToast('Rincian PDF berhasil diunduh!', 'success');
+        }
         // LOGIKA OPSI & EDIT KARYAWAN
         // ==========================================
                 // 1. Buka Modal Opsi
