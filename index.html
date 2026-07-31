@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Hitung Gaji & HRIS</title>
+    <title>Hitung Gaji & HRIS BLIMI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -56,7 +56,7 @@
                 <div class="flex justify-between h-16">
                     <div class="flex items-center">
                         <svg class="w-8 h-8 text-white mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <span class="font-bold text-xl text-white">Hitung Gaji Pro</span>
+                        <span class="font-bold text-xl text-white">Hitung Gaji BLIMI</span>
                     </div>
                     <div class="flex items-center space-x-4">
                         <span id="userInfo" class="text-white text-sm opacity-90 hidden sm:block"></span>
@@ -197,18 +197,21 @@
                             <input type="time" name="check_out_target" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Gaji Pokok (Base Salary)</label>
-                        <input type="number" name="base_salary" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Bonus Kehadiran</label>
-                        <input type="number" name="attendance_bonus" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Potongan per Absen (Deduction)</label>
-                        <input type="number" name="deduction" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
+                    <!-- Gaji Pokok -->
+<div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Gaji Pokok (Base Salary)</label>
+    <input type="text" inputmode="numeric" name="base_salary" oninput="formatInputCurrency(this)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+</div>
+<!-- Bonus Kehadiran -->
+<div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Bonus Kehadiran</label>
+    <input type="text" inputmode="numeric" name="attendance_bonus" oninput="formatInputCurrency(this)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+</div>
+<!-- Potongan per Absen -->
+<div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Potongan per Absen (Deduction)</label>
+    <input type="text" inputmode="numeric" name="deduction" oninput="formatInputCurrency(this)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+</div>
                 </div>
 
                 <div class="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4">
@@ -303,18 +306,21 @@
                             <input type="time" id="editCheckOut" name="check_out_target" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Gaji Pokok (Base Salary)</label>
-                        <input type="number" id="editBaseSalary" name="base_salary" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Bonus Kehadiran</label>
-                        <input type="number" id="editAttendanceBonus" name="attendance_bonus" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Potongan per Absen</label>
-                        <input type="number" id="editDeduction" name="deduction" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
+                    <!-- Gaji Pokok -->
+<div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Gaji Pokok (Base Salary)</label>
+    <input type="text" inputmode="numeric" id="editBaseSalary" name="base_salary" oninput="formatInputCurrency(this)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+</div>
+<!-- Bonus Kehadiran -->
+<div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Bonus Kehadiran</label>
+    <input type="text" inputmode="numeric" id="editAttendanceBonus" name="attendance_bonus" oninput="formatInputCurrency(this)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+</div>
+<!-- Potongan per Absen -->
+<div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">Potongan per Absen</label>
+    <input type="text" inputmode="numeric" id="editDeduction" name="deduction" oninput="formatInputCurrency(this)" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+</div>
                 </div>
 
                 <!-- Bagian Konfirmasi Password (Khusus Edit) -->
@@ -445,9 +451,9 @@
                 document.getElementById('editStartDate').value = data.start_date || '';
                 document.getElementById('editCheckIn').value = data.check_in_target || '';
                 document.getElementById('editCheckOut').value = data.check_out_target || '';
-                document.getElementById('editBaseSalary').value = data.base_salary || '';
-                document.getElementById('editAttendanceBonus').value = data.attendance_bonus || '';
-                document.getElementById('editDeduction').value = data.deduction || '';
+                document.getElementById('editBaseSalary').value = data.base_salary ? formatRp(data.base_salary) : '';
+document.getElementById('editAttendanceBonus').value = data.attendance_bonus ? formatRp(data.attendance_bonus) : '';
+document.getElementById('editDeduction').value = data.deduction ? formatRp(data.deduction) : '';
                 
                 // Kosongkan kolom konfirmasi password admin
                 document.getElementById('editAdminPassword').value = '';
@@ -504,19 +510,20 @@
                 const parseStr = (val) => val ? val.trim() : null;
 
                 // Siapkan JSON tanpa mengirim 'code' agar tidak ter-edit
-                const updatedData = {
-                    name: parseStr(fd.get('name')),
-                    username: parseStr(fd.get('username')),
-                    password: parseStr(fd.get('password')),
-                    position: parseStr(fd.get('position')),
-                    working_hours: parseNum(fd.get('working_hours')) || 8,
-                    start_date: fd.get('start_date') || null,
-                    check_in_target: fd.get('check_in_target') || null,
-                    check_out_target: fd.get('check_out_target') || null,
-                    base_salary: parseNum(fd.get('base_salary')),
-                    attendance_bonus: parseNum(fd.get('attendance_bonus')),
-                    deduction: parseNum(fd.get('deduction'))
-                };
+                // Ganti parseNum menjadi parseCurrency
+const updatedData = {
+    name: parseStr(fd.get('name')),
+    username: parseStr(fd.get('username')),
+    password: parseStr(fd.get('password')),
+    position: parseStr(fd.get('position')),
+    working_hours: parseNum(fd.get('working_hours')) || 8,
+    start_date: fd.get('start_date') || null,
+    check_in_target: fd.get('check_in_target') || null,
+    check_out_target: fd.get('check_out_target') || null,
+    base_salary: parseCurrency(fd.get('base_salary')), // PERUBAHAN DI SINI
+    attendance_bonus: parseCurrency(fd.get('attendance_bonus')), // PERUBAHAN DI SINI
+    deduction: parseCurrency(fd.get('deduction')) // PERUBAHAN DI SINI
+};
 
                 // Proses UPDATE ke Supabase
                 const { error: updateError } = await supabaseClient
@@ -1095,20 +1102,21 @@ function generateEmployeeCode() {
     // -----------------------------------
     
             // Pengumpulan data sesuai dengan skema tabel
-            const newEmployeeData = {
-                code: parseStr(fd.get('code')),
-                name: parseStr(fd.get('name')),
-                username: parseStr(fd.get('username')),
-                password: parseStr(fd.get('password')),
-                position: parseStr(fd.get('position')),
-                working_hours: parseNum(fd.get('working_hours')) || 8,
-                start_date: fd.get('start_date') || null,
-                check_in_target: fd.get('check_in_target') || null,
-                check_out_target: fd.get('check_out_target') || null,
-                base_salary: parseNum(fd.get('base_salary')),
-                attendance_bonus: parseNum(fd.get('attendance_bonus')),
-                deduction: parseNum(fd.get('deduction'))
-            };
+            // Ganti parseNum menjadi parseCurrency untuk bagian gaji, bonus, dan potongan
+const newEmployeeData = {
+    code: parseStr(fd.get('code')),
+    name: parseStr(fd.get('name')),
+    username: parseStr(fd.get('username')),
+    password: parseStr(fd.get('password')),
+    position: parseStr(fd.get('position')),
+    working_hours: parseNum(fd.get('working_hours')) || 8,
+    start_date: fd.get('start_date') || null,
+    check_in_target: fd.get('check_in_target') || null,
+    check_out_target: fd.get('check_out_target') || null,
+    base_salary: parseCurrency(fd.get('base_salary')), // PERUBAHAN DI SINI
+    attendance_bonus: parseCurrency(fd.get('attendance_bonus')), // PERUBAHAN DI SINI
+    deduction: parseCurrency(fd.get('deduction')) // PERUBAHAN DI SINI
+};
 
             try {
                 const { data, error } = await supabaseClient
@@ -1150,6 +1158,25 @@ function generateEmployeeCode() {
         function closeModalHapus() {
             document.getElementById('modalHapus').classList.add('hidden');
         }
+
+        // Fungsi pembantu untuk memformat input menjadi currency saat diketik
+function formatInputCurrency(input) {
+    // Hapus semua karakter selain angka
+    let value = input.value.replace(/\D/g, '');
+    if (value !== '') {
+        // Format ke standar Rupiah memanfaatkan formatRp yang sudah ada
+        input.value = formatRp(parseInt(value, 10));
+    } else {
+        input.value = '';
+    }
+}
+
+// Fungsi pembantu untuk mengembalikan input currency menjadi angka murni ke database
+const parseCurrency = (val) => {
+    if (!val) return null;
+    const cleanStr = val.toString().replace(/\D/g, '');
+    return cleanStr ? Number(cleanStr) : null;
+};
 
         async function submitHapusKaryawan(e) {
             e.preventDefault();
