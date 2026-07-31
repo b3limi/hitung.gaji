@@ -87,6 +87,18 @@
                 </div>
             </div>
 
+           <!-- WIDGET TOTAL GAJI -->
+            <div class="bg-blue-600 rounded-xl shadow-md border border-blue-700 p-6 mb-6 flex flex-col sm:flex-row justify-between items-center text-white">
+                <div class="mb-2 sm:mb-0 text-center sm:text-left">
+                    <h3 class="text-base md:text-lg font-medium text-blue-100 uppercase tracking-wider">
+                        Total Gaji Periode <span id="labelPeriodeKeseluruhan" class="font-bold text-white">-</span>
+                    </h3>
+                </div>
+                <div class="text-3xl md:text-4xl font-bold" id="summaryTotalGaji">
+                    Rp 0
+                </div>
+            </div>
+            
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative min-h-[300px]">
                 <div id="loadingOverlay" class="hidden absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -416,6 +428,19 @@ function setInitialCurrencyVal(event) {
     // Simpan ke dataset
     input.dataset.prevVal = cleanStr === "" ? "" : parseInt(cleanStr, 10);
 }
+
+function updateTotalGajiKeseluruhan() {
+            let total = 0;
+            // Menjumlahkan seluruh total gaji dari data yang sedang aktif/ditampilkan
+            Object.values(currentData).forEach(row => {
+                total += (Number(row.totalGaji) || 0);
+            });
+            
+            const summaryEl = document.getElementById('summaryTotalGaji');
+            if (summaryEl) {
+                summaryEl.textContent = `Rp ${formatRp(total)}`;
+            }
+        }
 
         // LOGIKA OPSI & EDIT KARYAWAN
         // ==========================================
@@ -799,6 +824,7 @@ if (jabatan !== 'bendahara' && jabatan !== 'hrd' && jabatan !== 'owner') {
 
             renderTable();
             document.getElementById('savePeriodeLabel').textContent = currentPeriode;
+            document.getElementById('labelPeriodeKeseluruhan').textContent = currentPeriode;
             document.getElementById('bottomBar').classList.remove('translate-y-full');
         }
 
@@ -917,6 +943,7 @@ if (jabatan !== 'bendahara' && jabatan !== 'hrd' && jabatan !== 'owner') {
             document.querySelectorAll('.table-input:not([readonly])').forEach(input => {
                 input.addEventListener('input', handleInputChange);
             });
+            updateTotalGajiKeseluruhan();
         }
 
         function handleInputChange(e) {
@@ -1007,6 +1034,7 @@ if (jabatan !== 'bendahara' && jabatan !== 'hrd' && jabatan !== 'owner') {
     document.querySelectorAll(`.total-label-${noid}`).forEach(el => {
         el.textContent = `Rp ${formatRp(row.totalGaji)}`;
     });
+    updateTotalGajiKeseluruhan();
 }
 
 async function saveData() {
