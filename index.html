@@ -961,7 +961,8 @@ if (jabatan !== 'bendahara' && jabatan !== 'hrd' && jabatan !== 'owner') {
                 const lembur = source ? Number(source.lembur) : ""; 
                 const bonus = source ? Number(source.bonus) : "";
 
-                const gajiPokok = source ? Number(source.gaji_pokok) : Number(u.gajiPokokBase);
+                // Jika isLocked (Terbit), ambil dari tabel gaji. Jika masih draft, ikuti tabel employee
+const gajiPokok = isLocked ? Number(saved.gaji_pokok) : Number(u.gajiPokokBase);
                 
                 const calcAbsen = absen === "" ? 0 : absen;
                 const calcLembur = lembur === "" ? 0 : lembur;
@@ -1232,18 +1233,17 @@ async function saveData() {
             btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-600 mr-2"></div> Menyimpan...';
             btn.disabled = true;
 
-            const dataToInsert = dataToSave.map(row => ({
-                noid: row.noid,
-                nama: row.nama,
-                periode: currentPeriode,
-                total_kehadiran: Number(row.kehadiran) || 0,
-                absen_izin: Number(row.absen) || 0,
-                gaji_pokok: Number(row.gajiPokok) || 0,
-                lembur: Number(row.lembur) || 0,
-                bonus: Number(row.bonus) || 0,
-                potongan: Number(row.totalPotongan) || 0,
-                total_gaji: Number(row.totalGaji) || 0
-            }));
+           const dataToInsert = dataToSave.map(row => ({
+    noid: row.noid,
+    nama: row.nama,
+    periode: currentPeriode,
+    total_kehadiran: Number(row.kehadiran) || 0,
+    absen_izin: Number(row.absen) || 0,
+    lembur: Number(row.lembur) || 0,
+    bonus: Number(row.bonus) || 0,
+    potongan: Number(row.totalPotongan) || 0,
+    total_gaji: Number(row.totalGaji) || 0
+}));
             
             const noidsToSave = dataToInsert.map(d => d.noid);
 
