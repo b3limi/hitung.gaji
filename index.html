@@ -766,6 +766,7 @@
         }
 
 
+
         // ==========================================
         // MODULE: HRIS & GAJI
         // ==========================================
@@ -1347,67 +1348,158 @@
             select.innerHTML = html;
         }
 
-        async function loadTasks(employeeId) {
-            document.getElementById('loading-tasks').classList.remove('hidden');
-            document.getElementById('empty-tasks').classList.add('hidden');
-            document.getElementById('tasks-container').innerHTML = '';
-            document.getElementById('task-count').innerText = '0 TUGAS';
+      // Variabel global untuk menyimpan koneksi realtime agar tidak ganda
+let taskRealtimeSubscription = null;
 
-            const { data, error } = await supabaseClient.from('employee_tasks')
-                .select('*').eq('pic_id', employeeId)
-                .order('is_active', { ascending: false }).order('id', { ascending: false });
+// FUNGSI 1: Setup Supabase Realtime
+function setupTaskRealtime(employeeId) {
+    // Jika sudah ada koneksi sebelumnya (misal saat ganti karyawan), matikan dulu
+    if (taskRealtimeSubscription) {
+        supabaseClient.removeChannel(taskRealtimeSubscription);
+    }
+    
+    // Berlangganan perubahan (INSERT/UPDATE) pada tabel daily_task_logs untuk PIC yang sedang dipilih
+    taskRealtimeSubscription = supabaseClient.channel('custom-task-channel')
+        .on(
+            'postgres_changes',
+            { 
+                event: '*', 
+                schema: 'public', 
+                table: 'daily_task_logs', 
+                filter: `pic_id=eq.${employeeId}` 
+            },
+            (payload) => {
+                console.log('Tugas diperbarui oleh karyawan!', payload);
+                // Muat ulang daftar tugas tanpa loading layar penuh agar terlihat mulus (seamless)
+                loadTasks(employeeId, true); 
+            }
+        )
+        .subscribe();
+}
 
+// FUNGSI 2: Load Tugas beserta Status Harian
+async function loadTasks(employeeId, isSilentRefresh = false) {
+    if (!isSilentRefresh) {
+        document.getElementById('loading-tasks').classList.remove('hidden');
+        document.getElementById('empty-tasks').classList.add('hidden');
+        document.getElementById('tasks-container').innerHTML = '';
+    }
+    
+    // Ambil tanggal hari ini (Format YYYY-MM-DD waktu lokal)
+    const todayStr = new Date().toLocaleDateString('en-CA'); // en-CA menghasilkan YYYY-MM-DD
+
+    try {
+        // 1. Tarik Data Tugas Master
+        const { data: tasksData, error: tasksError } = await supabaseClient.from('employee_tasks')
+            .select('*')
+            .eq('pic_id', employeeId)
+            .order('is_active', { ascending: false })
+            .order('id', { ascending: false });
+
+        if (tasksError) throw tasksError;
+
+        // 2. Tarik Data Log Harian (Untuk mengecek mana yang sudah selesai hari ini)
+        const { data: logsData, error: logsError } = await supabaseClient.from('daily_task_logs')
+            .select('task_id, is_completed')
+            .eq('pic_id', employeeId)
+            .eq('task_date', todayStr)
+            .eq('is_completed', true);
+
+        if (logsError) throw logsError;
+
+        // 3. Buat Set dari ID tugas yang sudah selesai agar pengecekan lebih cepat
+        const completedTaskIds = new Set((logsData || []).map(log => log.task_id));
+
+        // 4. Gabungkan data
+        currentTasks = (tasksData || []).map(task => ({
+            ...task,
+            is_completed_today: completedTaskIds.has(task.id)
+        }));
+
+        if (!isSilentRefresh) {
             document.getElementById('loading-tasks').classList.add('hidden');
-
-            if (error) return showToast("Gagal memuat daftar tugas", "error");
-
-            currentTasks = data || [];
             document.getElementById('task-count').innerText = `${currentTasks.length} TUGAS`;
-            if (currentTasks.length === 0) document.getElementById('empty-tasks').classList.remove('hidden');
-            else renderTasksMobile(currentTasks);
         }
 
-        function renderTasksMobile(tasks) {
-            const container = document.getElementById('tasks-container');
-            let html = '';
-            tasks.forEach((task) => {
-                let typeBg = task.task_type === 'sekali' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200';
-                let typeIcon = task.task_type === 'sekali' ? 'fa-bolt' : 'fa-rotate';
-                let typeText = task.task_type === 'sekali' ? 'Sekali' : 'Rutin';
-                let scheduleText = '';
-                if (task.schedule_type === 'harian') scheduleText = 'Tiap Hari';
-                else if (task.schedule_type === 'mingguan') {
-                    let days = typeof task.schedule_days === 'string' ? task.schedule_days.replace(/[{}]/g, '').split(',') : task.schedule_days;
-                    if(days && days.length > 0) scheduleText = days.map(d => ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][parseInt(d)]).join(', ');
-                    else scheduleText = 'Mingguan';
-                }
-                else if (task.schedule_type === 'bulanan' || task.task_type === 'sekali') scheduleText = `Tgl ${task.schedule_date || '-'}`;
-
-                let cardClass = task.is_active ? 'bg-white shadow-sm border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60';
-                let titleClass = task.is_active ? 'text-slate-800' : 'text-slate-500 line-through';
-
-                html += `
-                    <div class="p-4 rounded-2xl border ${cardClass} relative overflow-hidden transition-all">
-                        ${!task.is_active ? '<div class="absolute top-0 right-0 bg-slate-200 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">NONAKTIF</div>' : ''}
-                        <div class="pr-12 mb-3"><h4 class="font-bold text-sm ${titleClass} leading-snug">${task.task_name}</h4></div>
-                        <div class="flex flex-wrap gap-1.5 mb-3">
-                            <span class="text-[10px] font-bold px-2 py-1 rounded-md border ${typeBg} flex items-center gap-1"><i class="fa-solid ${typeIcon}"></i> ${typeText}</span>
-                            <span class="text-[10px] font-bold px-2 py-1 rounded-md border bg-slate-100 text-slate-600 border-slate-200 flex items-center gap-1"><i class="fa-solid fa-calendar-day"></i> ${scheduleText}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
-                            <button onclick="editTask(${task.id})" class="py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5">
-                                <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Edit
-                            </button>
-                            <button onclick="deleteTask(${task.id})" class="py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+        if (currentTasks.length === 0) {
+            document.getElementById('empty-tasks').classList.remove('hidden');
+            document.getElementById('tasks-container').innerHTML = '';
+        } else {
+            renderTasksMobile(currentTasks);
+            
+            // Aktifkan pemantau realtime setelah data pertama kali dimuat
+            if (!isSilentRefresh) setupTaskRealtime(employeeId);
         }
+        
+    } catch (err) {
+        if (!isSilentRefresh) document.getElementById('loading-tasks').classList.add('hidden');
+        showToast("Gagal memuat tugas", err.message, "error");
+    }
+}
+
+// FUNGSI 3: Render Tugas dengan Indikator Selesai
+function renderTasksMobile(tasks) {
+    const container = document.getElementById('tasks-container');
+    let html = '';
+    
+    tasks.forEach((task) => {
+        let typeBg = task.task_type === 'sekali' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200';
+        let typeIcon = task.task_type === 'sekali' ? 'fa-bolt' : 'fa-rotate';
+        let typeText = task.task_type === 'sekali' ? 'Sekali' : 'Rutin';
+        let scheduleText = '';
+        
+        if (task.schedule_type === 'harian') scheduleText = 'Tiap Hari';
+        else if (task.schedule_type === 'mingguan') {
+            let days = typeof task.schedule_days === 'string' ? task.schedule_days.replace(/[{}]/g, '').split(',') : task.schedule_days;
+            if(days && days.length > 0) scheduleText = days.map(d => ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][parseInt(d)]).join(', ');
+            else scheduleText = 'Mingguan';
+        }
+        else if (task.schedule_type === 'bulanan' || task.task_type === 'sekali') scheduleText = `Tgl ${task.schedule_date || '-'}`;
+
+        // Cek Status Harian
+        let isCompleted = task.is_completed_today;
+        let cardClass = task.is_active ? 'bg-white shadow-sm border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60';
+        let titleClass = task.is_active ? 'text-slate-800' : 'text-slate-500 line-through';
+        
+        // Beri warna hijau jika tugas sudah selesai hari ini
+        if (isCompleted) {
+            cardClass = 'bg-emerald-50/40 shadow-sm border-emerald-200 border-l-4 border-l-emerald-500 transition-all';
+            titleClass = 'text-emerald-900 line-through opacity-70';
+        }
+
+        // Logic Label Pojok Kanan Atas
+        let statusBadge = '';
+        if (isCompleted) {
+            statusBadge = `<div class="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-bold px-2 py-1 rounded-bl-lg flex items-center gap-1 shadow-sm"><i class="fa-solid fa-check-double"></i> SELESAI HARI INI</div>`;
+        } else if (!task.is_active) {
+            statusBadge = `<div class="absolute top-0 right-0 bg-slate-200 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">NONAKTIF</div>`;
+        }
+
+        html += `
+            <div class="p-4 rounded-2xl border ${cardClass} relative overflow-hidden transition-all duration-500">
+                ${statusBadge}
+                <div class="pr-20 mb-3"><h4 class="font-bold text-sm ${titleClass} leading-snug">${task.task_name}</h4></div>
+                <div class="flex flex-wrap gap-1.5 mb-3">
+                    <span class="text-[10px] font-bold px-2 py-1 rounded-md border ${isCompleted ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : typeBg} flex items-center gap-1"><i class="fa-solid ${typeIcon}"></i> ${typeText}</span>
+                    <span class="text-[10px] font-bold px-2 py-1 rounded-md border ${isCompleted ? 'bg-white text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'} flex items-center gap-1"><i class="fa-solid fa-calendar-day"></i> ${scheduleText}</span>
+                </div>
+                
+                <!-- Tombol Opsi Admin (Disembunyikan sedikit jika tugas selesai agar tidak mengganggu fokus) -->
+                <div class="grid grid-cols-2 gap-2 border-t ${isCompleted ? 'border-emerald-100/50' : 'border-slate-100'} pt-3 ${isCompleted ? 'opacity-50 hover:opacity-100' : ''}">
+                    <button onclick="editTask(${task.id})" class="py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                        <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Edit
+                    </button>
+                    <button onclick="deleteTask(${task.id})" class="py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
 
         function openTaskModal() {
             document.getElementById('task-form').reset();
